@@ -1,0 +1,43 @@
+services:
+  whisper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local-whisper-api:latest
+    container_name: whisper-local-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER_MODEL=base
+      - WHISPER_DEVICE=auto
+      - WHISPER_COMPUTE_TYPE=auto
+      - WHISPER_CPU_THREADS=4
+      - WHISPER_DOWNLOAD_ROOT=/models
+      - HOST=0.0.0.0
+      - PORT=8000
+      # Optional: set API_KEY to require Bearer authentication
+      # - API_KEY=your_secret_key_here
+    volumes:
+      # Persistent cache for downloaded Whisper models across container rebuilds
+      - whisper-models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+    # --- GPU Acceleration (NVIDIA Container Toolkit) ---
+    # Uncomment the block below to pass your NVIDIA GPU into the container:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  whisper-models:
+    name: whisper-models-cache

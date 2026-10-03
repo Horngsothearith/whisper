@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whisper Local • AI Speech-to-Text Studio & API</title>
+  <meta name="description" content="Local, private, high-performance speech-to-text API and transcription studio powered by Faster-Whisper.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Background Glow Accents -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Whisper <span>Local</span></h1>
+        <span class="badge-tag">Faster-Whisper Studio</span>
+      </div>
+    </div>
+
+    <!-- Live System Status Header -->
+    <div class="header-right">
+      <div class="status-pill" id="engine-status-pill">
+        <span class="pulse-dot"></span>
+        <span id="engine-status-text">Connecting...</span>
+      </div>
+      <div class="hardware-pill" id="hardware-pill" title="Hardware Acceleration & Loaded Model">
+        <span class="hw-icon">⚡</span>
+        <span id="current-model-tag">model: base</span>
+        <span class="sep">•</span>
+        <span id="current-device-tag">CPU (int8)</span>
+      </div>
+      <a href="/docs" target="_blank" class="nav-btn docs-btn" title="Open Swagger API documentation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+          <path d="M6 6h10"></path>
+          <path d="M6 10h10"></path>
+        </svg>
+        Swagger Docs
+      </a>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Top System Metrics Bar -->
+    <section class="metrics-bar glass-panel">
+      <div class="metric-item">
+        <span class="metric-label">Active Model</span>
+        <div class="metric-value-wrap">
+          <select id="header-model-select" class="model-quick-select">
+            <option value="tiny">tiny (39M)</option>
+            <option value="base" selected>base (74M)</option>
+            <option value="small">small (244M)</option>
+            <option value="medium">medium (769M)</option>
+            <option value="large-v3-turbo">large-v3-turbo (809M)</option>
+          </select>
+          <button id="switch-model-btn" class="mini-btn" title="Load selected model">Switch</button>
+        </div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">CPU Usage</span>
+        <div class="metric-bar-group">
+          <span class="metric-num" id="cpu-num">--%</span>
+          <div class="progress-track"><div class="progress-fill" id="cpu-bar" style="width: 0%"></div></div>
+        </div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">RAM Usage</span>
+        <div class="metric-bar-group">
+          <span class="metric-num" id="ram-num">--%</span>
+          <div class="progress-track"><div class="progress-fill" id="ram-bar" style="width: 0%"></div></div>
+        </div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">API Endpoint</span>
+        <code class="endpoint-code">POST /v1/audio/transcriptions</code>
+      </div>
+    </section>
+
+    <!-- Main Workspace Grid -->
+    <div class="studio-grid">
+      
+      <!-- LEFT COLUMN: Audio Input & Settings -->
+      <section class="panel glass-panel input-panel">
+        <div class="panel-header">
+          <h2>1. Audio Source</h2>
+          <div class="tab-group" id="input-tabs">
+            <button class="tab-btn active" data-tab="mic" id="tab-mic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              </svg>
+              Microphone
+            </button>
+            <button class="tab-btn" data-tab="upload" id="tab-upload">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Upload Audio
+            </button>
+          </div>
+        </div>
+
+        <!-- Mic Tab Body -->
+        <div class="tab-content active" id="content-mic">
+          <div class="recorder-wrapper">
+            <div class="visualizer-container">
+              <canvas id="visualizer-canvas" width="460" height="120"></canvas>
+              <div class="record-timer" id="record-timer">00:00.0</div>
+            </div>
+
+            <div class="recorder-controls">
+              <button id="record-btn" class="action-btn record-action-btn">
+                <span class="rec-icon"></span>
+                <span id="record-btn-text">Start Recording</span>
+              </button>
+              <button id="reset-audio-btn" class="secondary-btn" style="display:none;" title="Clear recorded audio">
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Tab Body -->
+        <div class="tab-content" id="content-upload">
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="file-input" accept="audio/*,video/*" hidden>
+            <div class="dropzone-content">
+              <div class="upload-icon-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="drop-text">Drag & drop your audio/video file here</p>
+              <p class="drop-subtext">Supports MP3, WAV, M4A, FLAC, OGG, WEBM, MP4 (Max 250MB)</p>
+              <button type="button" class="browse-btn" id="browse-btn">Browse Files</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shared Audio Preview Player -->
+        <div class="audio-preview-section" id="audio-preview-section" style="display: none;">
+          <div class="preview-header">
+            <span class="preview-label">Selected Audio:</span>
+            <span class="file-name-tag" id="preview-file-name">recording.wav</span>
+          </div>
+          <audio id="audio-preview" controls class="custom-audio-player"></audio>
+        </div>
+
+        <!-- Transcription Parameters & Settings -->
+        <div class="panel-section settings-section">
+          <h3>Inference Settings</h3>
+          <div class="settings-grid">
+            <div class="form-group">
+              <label for="param-language">Audio Language</label>
+              <select id="param-language" class="form-control">
+                <option value="auto">Auto Detect Language</option>
+                <option value="en">English (en)</option>
+                <option value="es">Spanish (es)</option>
+                <option value="fr">French (fr)</option>
+                <option value="de">German (de)</option>
+                <option value="it">Italian (it)</option>
+                <option value="pt">Portuguese (pt)</option>
+                <option value="ru">Russian (ru)</option>
+                <option value="zh">Chinese (zh)</option>
+                <option value="ja">Japanese (ja)</option>
+                <option value="ko">Korean (ko)</option>
+                <option value="ar">Arabic (ar)</option>
+                <option value="hi">Hindi (hi)</option>
+                <option value="id">Indonesian (id)</option>
+                <option value="vi">Vietnamese (vi)</option>
+                <option value="tr">Turkish (tr)</option>
+                <option value="nl">Dutch (nl)</option>
+                <option value="pl">Polish (pl)</option>
+                <option value="uk">Ukrainian (uk)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="param-task">Task</label>
+              <select id="param-task" class="form-control">
+                <option value="transcribe" selected>Transcribe (Original Language)</option>
+                <option value="translate">Translate to English</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toggle-group-row">
+            <label class="toggle-label" title="Uses Silero VAD to detect speech and skip silent gaps">
+              <input type="checkbox" id="param-vad" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Silero VAD Filter (Removes dead silence)</span>
+            </label>
+            <label class="toggle-label" title="Generates precise start and end timestamps for every word">
+              <input type="checkbox" id="param-timestamps" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Word-level Timestamps</span>
+            </label>
+          </div>
+
+          <div class="form-group prompt-group">
+            <label for="param-prompt">Initial Prompt / Vocabulary Guide <span class="hint-text">(optional)</span></label>
+            <input type="text" id="param-prompt" class="form-control" placeholder="e.g. Whisper, CTranslate2, PyTorch, technical terms...">
+          </div>
+
+          <!-- Primary Submit Button -->
+          <button id="transcribe-btn" class="primary-btn glow-btn" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="transcribe-btn-text">Transcribe Audio</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Output & Results -->
+      <section class="panel glass-panel output-panel">
+        <div class="panel-header">
+          <h2>2. Transcription Output</h2>
+          <div class="tab-group" id="output-tabs">
+            <button class="tab-btn active" data-tab="text" id="out-tab-text">Text</button>
+            <button class="tab-btn" data-tab="segments" id="out-tab-segments">Segments</button>
+            <button class="tab-btn" data-tab="srt" id="out-tab-srt">SRT</button>
+            <button class="tab-btn" data-tab="vtt" id="out-tab-vtt">VTT</button>
+            <button class="tab-btn" data-tab="json" id="out-tab-json">JSON</button>
+          </div>
+        </div>
+
+        <!-- Meta status bar for output -->
+        <div class="output-meta-strip" id="output-meta-strip" style="display: none;">
+          <div class="meta-tag">
+            <span>Language:</span>
+            <strong id="meta-lang">--</strong>
+          </div>
+          <div class="meta-tag">
+            <span>Audio Duration:</span>
+            <strong id="meta-duration">0.0s</strong>
+          </div>
+          <div class="meta-tag">
+            <span>Speed:</span>
+            <strong id="meta-speed">0.00s</strong>
+          </div>
+          <div class="meta-actions">
+            <button class="mini-icon-btn" id="copy-btn" title="Copy to clipboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            </button>
+            <button class="mini-icon-btn" id="download-btn" title="Download file">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Output Views -->
+        <div class="output-content-area">
+          <!-- Text View -->
+          <div class="out-view active" id="view-text">
+            <div class="empty-state" id="empty-state">
+              <div class="empty-icon">🎙️</div>
+              <h3>Ready to Transcribe</h3>
+              <p>Record from your microphone or drop an audio file on the left, then click Transcribe Audio.</p>
+            </div>
+            <div class="transcription-text" id="transcription-text" style="display: none;"></div>
+          </div>
+
+          <!-- Segments View -->
+          <div class="out-view" id="view-segments">
+            <div class="segments-list" id="segments-list"></div>
+          </div>
+
+          <!-- SRT View -->
+          <div class="out-view" id="view-srt">
+            <pre class="code-output" id="srt-output"></pre>
+          </div>
+
+          <!-- VTT View -->
+          <div class="out-view" id="view-vtt">
+            <pre class="code-output" id="vtt-output"></pre>
+          </div>
+
+          <!-- JSON View -->
+          <div class="out-view" id="view-json">
+            <pre class="code-output" id="json-output"></pre>
+          </div>
+        </div>
+
+        <!-- Interactive API Integration Drawer / Accordion -->
+        <div class="api-integration-card">
+          <div class="api-card-header" id="api-card-header">
+            <div class="api-title-wrap">
+              <span class="chip-badge">OpenAI Drop-In</span>
+              <strong>Use this API in your applications</strong>
+            </div>
+            <button class="toggle-chevron" id="api-toggle-btn">▼</button>
+          </div>
+          <div class="api-card-body" id="api-card-body">
+            <div class="api-subtabs">
+              <button class="api-subtab active" data-lang="python-openai">Python (OpenAI SDK)</button>
+              <button class="api-subtab" data-lang="python-requests">Python (Requests)</button>
+              <button class="api-subtab" data-lang="curl">cURL</button>
+              <button class="api-subtab" data-lang="js">JavaScript (Fetch)</button>
+            </div>
+            <pre class="snippet-code"><code id="code-snippet-display"></code></pre>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Local Whisper API Server • Powered by Faster-Whisper, CTranslate2 & FastAPI • 100% Offline & Private</p>
+  </footer>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="toast"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
